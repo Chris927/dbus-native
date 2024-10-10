@@ -41,10 +41,10 @@
     "event-stream": "^4.0.0",
     "hexy": "^0.2.10",
     "long": "^4.0.0",
-    "optimist": "^0.6.1",
+    "optimist": "^0.5.2",
     "put": "0.0.6",
     "safe-buffer": "^5.1.1",
-    "xml2js": "^0.4.17"
+    "xml2js": "^0.6.2"
   },
   "optionalDependencies": {
     "abstract-socket": "^2.0.0"
@@ -52,10 +52,10 @@
   "devDependencies": {
     "eslint": "^5.0.0",
     "eslint-config-prettier": "^3.0.0",
-    "eslint-plugin-markdown": "^1.0.0-beta.6",
+    "eslint-plugin-markdown": "^5.1.0",
     "eslint-plugin-prettier": "^3.0.0",
     "husky": "^1.0.0",
-    "lint-staged": "^8.0.0",
+    "lint-staged": "^15.2.10",
     "mocha": "*",
     "prettier": "^1.7.4"
   },
