@@ -1,7 +1,7 @@
 {
-  "name": "dbus-native",
-  "author": "Andrey Sidorov <sidorares@yandex.com>",
-  "version": "0.4.0",
+  "name": "dbus-native-victron",
+  "author": "Andrey Sidorov <sidorares@yandex.com>, Chris Oloff <chris@uber5.com>",
+  "version": "0.4.1",
   "keywords": [
     "dbus",
     "dcop",
@@ -10,7 +10,7 @@
     "gnome",
     "kde"
   ],
-  "description": "D-bus protocol implementation in native javascript",
+  "description": "D-bus protocol implementation in native javascript, with improvements to become useful for Victron devices",
   "files": [
     "bin/dbus2js.js",
     "lib/*",
@@ -25,14 +25,14 @@
   "main": "index.js",
   "maintainers": [
     {
-      "name": "Andrey Sidorov",
-      "email": "sidoares@yandex.ru"
+      "name": "Chris Oloff",
+      "email": "chris@uber5.com"
     }
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "http://github.com/sidorares/node-dbus.git"
+    "url": "http://github.com/Chris927/dbus-native.git"
   },
   "bin": {
     "dbus2js": "./bin/dbus2js.js"
