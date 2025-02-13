@@ -1,7 +1,7 @@
 {
   "name": "dbus-native-victron",
   "author": "Andrey Sidorov <sidorares@yandex.com>, Chris Oloff <chris@uber5.com>",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "keywords": [
     "dbus",
     "dcop",
