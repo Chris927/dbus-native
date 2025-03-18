@@ -2,7 +2,7 @@
 
 This package is a fork of [dbus-native](https://github.com/sidorares/dbus-native). It should be backwards-compatible.
 
-This fork implements some missing features that were missing from dbus-native, which are required to be useful with [Victron](https://www.victronenergy.com/) devices. For example, dbus as per its specification allows for calls without an interface being specified; this is now implemented in this fork.
+This fork implements some features that were missing from dbus-native, which are required to be useful with [Victron](https://www.victronenergy.com/) devices. For example, dbus as per its specification allows for calls without an interface being specified; this is now implemented in this fork.
 
 ## Installation
 
