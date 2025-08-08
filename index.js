@@ -112,20 +112,23 @@ function createConnection(opts) {
   self._messages = [];
 
   // pre-connect version, buffers all messages. replaced after connect
-  self.message = function(msg) {
-    self._messages.push(msg);
+  self.message = function(msg, cb) {
+    self._messages.push({ msg, cb });
   };
 
   self.once('connect', function() {
     self.state = 'connected';
     for (var i = 0; i < self._messages.length; ++i) {
-      stream.write(message.marshall(self._messages[i]));
+      stream.write(
+        message.marshall(self._messages[i].msg),
+        self._messages[i].cb
+      );
     }
     self._messages.length = 0;
 
     // no need to buffer once connected
-    self.message = function(msg) {
-      stream.write(message.marshall(msg));
+    self.message = function(msg, cb) {
+      stream.write(message.marshall(msg), cb);
     };
   });
 
