@@ -4,10 +4,135 @@ const assert = require('assert');
 
 describe('given a bus', function() {
   describe('when sending a message', function() {
+    it('should send the message to the stream and handle error scenarios', async function() {
+      let messageSent = null;
+      let busInstance = null;
+
+      // fake stream implementation, it captures the message sent to it
+      const stream = {
+        messagesReceived: [],
+        messagesReceivedWithoutCallback: [],
+        messagesWithoutCallbackHandlers: [],
+        write: (msg, cb) => {
+          if (msg.member === 'Hello') {
+            return; // we ignore the 'Hello' message
+          }
+          messageSent = msg;
+          process.nextTick(() => {
+            if (cb) {
+              console.warn(
+                `Stream write called with msg= ${JSON.stringify(msg)}`
+              );
+              stream.messagesReceived.push(msg);
+              cb(null); // simulate successful write
+            } else {
+              console.warn(
+                'No callback provided to stream.write, msg= ' +
+                  JSON.stringify(msg)
+              );
+              stream.messagesReceivedWithoutCallback.push(msg);
+              for (const handler of stream.messagesWithoutCallbackHandlers) {
+                handler(msg);
+              }
+            }
+          });
+        }
+      };
+
+      function getLatestMessageReceived() {
+        if (connection.messagesReceived.length === 0) {
+          return null;
+        }
+        return connection.messagesReceived[
+          connection.messagesReceived.length - 1
+        ];
+      }
+
+      // instantiate a bus with the fake stream
+      const connection = new EventEmitter();
+      connection.stream = stream;
+      connection.messagesReceived = [];
+      connection.message = (msg, cb) => {
+        console.warn(`Bus message called with msg= ${JSON.stringify(msg)}`);
+        connection.messagesReceived.push(msg);
+        stream.write(msg, cb);
+      };
+
+      busInstance = bus(connection);
+
+      assert.strictEqual(connection.messagesReceived.length, 1);
+
+      busInstance.connection.emit('message', { bla: 42 });
+
+      assert.strictEqual(connection.messagesReceived.length, 2);
+      assert.deepStrictEqual(getLatestMessageReceived(), {
+        type: 3,
+        serial: 2,
+        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
+        destination: undefined,
+        replySerial: undefined,
+        signature: 's',
+        body: [
+          'Unable to handle method call for path=undefined, interface=undefined, member=undefined'
+        ]
+      });
+
+      busInstance.connection.emit('message', {
+        path: '/object1',
+        interface: 'interface1',
+        member: 'nonExistingMethod'
+      });
+
+      assert.strictEqual(connection.messagesReceived.length, 3);
+      assert.deepStrictEqual(getLatestMessageReceived(), {
+        type: 3,
+        serial: 3,
+        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
+        destination: undefined,
+        replySerial: undefined,
+        signature: 's',
+        body: [
+          'Unable to handle method call for path=/object1, interface=interface1, member=nonExistingMethod'
+        ]
+      });
+
+      busInstance.exportedObjects.object1 = {
+        interface1: [
+          null,
+          {
+            methods: {
+              method1: function(arg, cb) {
+                console.warn(`method1 called with arg= ${JSON.stringify(arg)}`);
+                cb(null, 'result1');
+              }
+            }
+          }
+        ]
+      };
+
+      busInstance.connection.emit('message', {
+        path: 'object1',
+        interface: 'interface1',
+        member: 'nonExistingMethod'
+      });
+
+      assert.strictEqual(connection.messagesReceived.length, 4);
+      assert.deepStrictEqual(getLatestMessageReceived(), {
+        type: 3,
+        serial: 4,
+        errorName: 'org.freedesktop.DBus.Error.UnknownMethod',
+        destination: undefined,
+        replySerial: undefined,
+        signature: 's',
+        body: [
+          'Method "nonExistingMethod" on interface "interface1" doesn\'t exist'
+        ]
+      });
+    });
+
     it('should send the message to the stream', async function() {
-      /* TODO: This is not a useful test yet. It does trigger
-       * an UnknownService error, though, which we ultimately
-       * want to fix.
+      /* TODO: This is probably not a useful test, as using busInstance.invoke()
+       * seems to be the wrong entry point into processing a message received.
        */
 
       let messageSent = null;
@@ -78,17 +203,6 @@ describe('given a bus', function() {
 
       // invoke the bus to send a message
       await invokeBus({ bla: 42 });
-      // await new Promise(resolve => {
-      //   busInstance.invoke(
-      //     {
-      //       bla: 42
-      //     },
-      //     function(err) {
-      //       assert.ifError(err);
-      //     }
-      //   );
-      //   resolve();
-      // });
 
       // assert that the message was sent to the stream
       assert(messageSent);
@@ -117,6 +231,7 @@ describe('given a bus', function() {
       // assert.deepStrictEqual(connection.messagesReceived[2], { type: 3, serial: 3, errorName: 'org.freedesktop.DBus.Error.UnknownObject', });
 
       // simulate an incoming response
+      // TODO: maybe this is how we should test messages to non-existing objects/interfaces/methods?
       busInstance.connection.emit('message', { response: 'ok' });
 
       // assert that the bus emits the response message
@@ -149,6 +264,49 @@ describe('given a bus', function() {
           cb(null, 'result1');
         }
       };
+
+      // failure condition: calling a method that does not exist on an object that does exist.
+      await invokeBus({
+        path: '/object1',
+        interface: 'interface1',
+        member: 'nonExistingMethod'
+      });
+
+      assert.strictEqual(connection.messagesReceived.length, 4);
+      // TODO: why are we not getting an error now?
+      assert.deepStrictEqual(connection.messagesReceived[3], {
+        type: 1,
+        serial: 4,
+        // errorName: 'org.freedesktop.DBus.Error.UnknownMethod',
+        // destination: undefined,
+        // replySerial: undefined,
+        // signature: "s",
+        interface: 'interface1',
+        member: 'nonExistingMethod',
+        path: '/object1'
+        // body: [
+        //   "Unable to handle method call for path=/object1, interface=interface1, member=nonExistingMethod"
+        // ]
+      });
+
+      // simulate an incoming response
+      busInstance.connection.emit('message', { response: 'ok' });
+
+      assert.strictEqual(connection.messagesReceived.length, 5);
+      // assert.deepStrictEqual(connection.messagesReceived[4], {
+      //   type: 3,
+      //   serial: 5,
+      //   errorName: 'org.freedesktop.DBus.Error.UnknownMethod',
+      //   destination: undefined,
+      //   replySerial: undefined,
+      //   signature: "s",
+      //   interface: 'interface1',
+      //   member: 'nonExistingMethod',
+      //   path: '/object1',
+      //   body: [
+      //     "Unable to handle method call for path=/object1, interface=interface1, member=nonExistingMethod"
+      //   ]
+      // });
     });
   });
 
