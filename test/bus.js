@@ -68,13 +68,11 @@ describe('given a bus', function() {
       assert.deepStrictEqual(getLatestMessageReceived(), {
         type: 3,
         serial: 2,
-        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
+        errorName: 'org.freedesktop.DBus.Error.UnknownService',
         destination: undefined,
         replySerial: undefined,
         signature: 's',
-        body: [
-          'Unable to handle method call for path=undefined, interface=undefined, member=undefined'
-        ]
+        body: ['Uh oh oh']
       });
 
       busInstance.connection.emit('message', {
@@ -87,13 +85,11 @@ describe('given a bus', function() {
       assert.deepStrictEqual(getLatestMessageReceived(), {
         type: 3,
         serial: 3,
-        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
+        errorName: 'org.freedesktop.DBus.Error.UnknownService',
         destination: undefined,
         replySerial: undefined,
         signature: 's',
-        body: [
-          'Unable to handle method call for path=/object1, interface=interface1, member=nonExistingMethod'
-        ]
+        body: ['Uh oh oh']
       });
 
       busInstance.exportedObjects.object1 = {
@@ -246,13 +242,11 @@ describe('given a bus', function() {
       assert.deepStrictEqual(connection.messagesReceived[2], {
         type: 3,
         serial: 3,
-        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
+        errorName: 'org.freedesktop.DBus.Error.UnknownService',
         destination: undefined,
         replySerial: undefined,
         signature: 's',
-        body: [
-          'Unable to handle method call for path=undefined, interface=undefined, member=undefined'
-        ]
+        body: ['Uh oh oh']
       });
 
       // assert.strictEqual(busInstance.state, 'connected');
