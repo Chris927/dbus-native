@@ -78,7 +78,7 @@
     "singleQuote": true,
     "trailingComma": "none"
   },
-  "engine": {
+  "engines": {
     "node": ">=8.0"
   }
 }
