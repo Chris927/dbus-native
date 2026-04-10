@@ -1,6 +1,7 @@
 const EventEmitter = require('events');
 const bus = require('../lib/bus');
 const assert = require('assert');
+const debug = require('debug')('dbus-native-victron:bus-test');
 
 describe('given a bus', function() {
   describe('when sending a message', function() {
@@ -20,13 +21,11 @@ describe('given a bus', function() {
           messageSent = msg;
           process.nextTick(() => {
             if (cb) {
-              console.warn(
-                `Stream write called with msg= ${JSON.stringify(msg)}`
-              );
+              debug(`Stream write called with msg= ${JSON.stringify(msg)}`);
               stream.messagesReceived.push(msg);
               cb(null); // simulate successful write
             } else {
-              console.warn(
+              debug(
                 'No callback provided to stream.write, msg= ' +
                   JSON.stringify(msg)
               );
@@ -53,7 +52,7 @@ describe('given a bus', function() {
       connection.stream = stream;
       connection.messagesReceived = [];
       connection.message = (msg, cb) => {
-        console.warn(`Bus message called with msg= ${JSON.stringify(msg)}`);
+        debug(`Bus message called with msg= ${JSON.stringify(msg)}`);
         connection.messagesReceived.push(msg);
         stream.write(msg, cb);
       };
@@ -68,15 +67,15 @@ describe('given a bus', function() {
       assert.deepStrictEqual(getLatestMessageReceived(), {
         type: 3,
         serial: 2,
-        errorName: 'org.freedesktop.DBus.Error.UnknownService',
+        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
         destination: undefined,
         replySerial: undefined,
         signature: 's',
-        body: ['Uh oh oh']
+        body: ['Unable to handle method call, check path.']
       });
 
       busInstance.connection.emit('message', {
-        path: '/object1',
+        path: 'non-existing-path',
         interface: 'interface1',
         member: 'nonExistingMethod'
       });
@@ -85,11 +84,11 @@ describe('given a bus', function() {
       assert.deepStrictEqual(getLatestMessageReceived(), {
         type: 3,
         serial: 3,
-        errorName: 'org.freedesktop.DBus.Error.UnknownService',
+        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
         destination: undefined,
         replySerial: undefined,
         signature: 's',
-        body: ['Uh oh oh']
+        body: ['Unable to handle method call, check path.']
       });
 
       busInstance.exportedObjects.object1 = {
@@ -98,7 +97,7 @@ describe('given a bus', function() {
           {
             methods: {
               method1: function(arg, cb) {
-                console.warn(`method1 called with arg= ${JSON.stringify(arg)}`);
+                debug(`method1 called with arg= ${JSON.stringify(arg)}`);
                 cb(null, 'result1');
               }
             }
@@ -124,11 +123,28 @@ describe('given a bus', function() {
           'Method "nonExistingMethod" on interface "interface1" doesn\'t exist'
         ]
       });
+
+      busInstance.connection.emit('message', {
+        path: 'object1',
+        interface: 'interface2',
+        member: 'nonExistingMethod'
+      });
+
+      assert.strictEqual(connection.messagesReceived.length, 5);
+      assert.deepStrictEqual(getLatestMessageReceived(), {
+        type: 3,
+        serial: 5,
+        errorName: 'org.freedesktop.DBus.Error.UnknownInterface',
+        destination: undefined,
+        replySerial: undefined,
+        signature: 's',
+        body: ['Unable to handle method call, check interface.']
+      });
     });
 
     it('should send the message to the stream', async function() {
-      /* TODO: This is probably not a useful test, as using busInstance.invoke()
-       * seems to be the wrong entry point into processing a message received.
+      /* TODO: This is a problematic unit test, as using busInstance.invoke()
+       * results in some odd call paths. We leave the test here to aid future refactoring.
        */
 
       let messageSent = null;
@@ -146,13 +162,11 @@ describe('given a bus', function() {
           messageSent = msg;
           process.nextTick(() => {
             if (cb) {
-              console.warn(
-                `Stream write called with msg= ${JSON.stringify(msg)}`
-              );
+              debug(`Stream write called with msg= ${JSON.stringify(msg)}`);
               stream.messagesReceived.push(msg);
               cb(null); // simulate successful write
             } else {
-              console.warn(
+              debug(
                 'No callback provided to stream.write, msg= ' +
                   JSON.stringify(msg)
               );
@@ -170,7 +184,7 @@ describe('given a bus', function() {
       connection.stream = stream;
       connection.messagesReceived = [];
       connection.message = (msg, cb) => {
-        console.warn(`Bus message called with msg= ${JSON.stringify(msg)}`);
+        debug(`Bus message called with msg= ${JSON.stringify(msg)}`);
         connection.messagesReceived.push(msg);
         stream.write(msg, cb);
       };
@@ -178,18 +192,18 @@ describe('given a bus', function() {
       busInstance = bus(connection);
 
       // connection.stream.on('message', function(msg) {
-      //   console.warn(`Stream received message: ${JSON.stringify(msg)}`);
+      //   debug(`Stream received message: ${JSON.stringify(msg)}`);
       // });
 
       function invokeBus(msg) {
         return new Promise((resolve, reject) => {
           busInstance.invoke(msg, function(err) {
             if (err) {
-              console.warn(
+              debug(
                 `Bus invoke error: ${err.message}, msg=${JSON.stringify(msg)}`
               );
             } else {
-              console.warn(`Bus invoke successful, msg=${JSON.stringify(msg)}`);
+              debug(`Bus invoke successful, msg=${JSON.stringify(msg)}`);
             }
           });
           // note that we resolve *before* the callback is called. Callback does not seem to be called, unless there is an error.
@@ -233,7 +247,7 @@ describe('given a bus', function() {
       // assert that the bus emits the response message
       // TODO: the callback is not being called.
       busInstance.connection.on('message', function(msg) {
-        console.warn(`Received message: ${JSON.stringify(msg)}`);
+        debug(`Received message: ${JSON.stringify(msg)}`);
         assert.deepStrictEqual(msg, { response: 'ok' });
       });
 
@@ -242,19 +256,19 @@ describe('given a bus', function() {
       assert.deepStrictEqual(connection.messagesReceived[2], {
         type: 3,
         serial: 3,
-        errorName: 'org.freedesktop.DBus.Error.UnknownService',
+        errorName: 'org.freedesktop.DBus.Error.UnknownObject',
         destination: undefined,
         replySerial: undefined,
         signature: 's',
-        body: ['Uh oh oh']
+        body: ['Unable to handle method call, check path.']
       });
 
       // assert.strictEqual(busInstance.state, 'connected');
-      console.warn(`Done?`);
+      debug('Done');
 
       busInstance.exportedObjects.object1 = {
         method1: function(arg, cb) {
-          console.warn(`method1 called with arg= ${JSON.stringify(arg)}`);
+          debug(`method1 called with arg= ${JSON.stringify(arg)}`);
           cb(null, 'result1');
         }
       };
