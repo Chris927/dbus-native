@@ -135,21 +135,24 @@ function createConnection(opts) {
   return self;
 }
 
-module.exports.createClient = function(params) {
+module.exports.createClient = function(params, cb) {
   var connection = createConnection(params || {});
-  return new MessageBus(connection, params || {});
+  return new MessageBus(connection, params || {}, cb);
 };
 
-module.exports.systemBus = function() {
-  return module.exports.createClient({
-    busAddress:
-      process.env.DBUS_SYSTEM_BUS_ADDRESS ||
-      'unix:path=/var/run/dbus/system_bus_socket'
-  });
+module.exports.systemBus = function(cb) {
+  return module.exports.createClient(
+    {
+      busAddress:
+        process.env.DBUS_SYSTEM_BUS_ADDRESS ||
+        'unix:path=/var/run/dbus/system_bus_socket'
+    },
+    cb
+  );
 };
 
-module.exports.sessionBus = function(opts) {
-  return module.exports.createClient(opts);
+module.exports.sessionBus = function(opts, cb) {
+  return module.exports.createClient(opts, cb);
 };
 
 module.exports.messageType = constants.messageType;
