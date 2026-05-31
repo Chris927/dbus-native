@@ -353,4 +353,46 @@ describe('given a bus', function() {
       );
     });
   });
+
+  it('instantiating the bus sends the "Hello" message', async function() {
+    // fake stream implementation, it fails on write
+    let helloMessageSent = false;
+    let busInstance = null;
+    const stream = {
+      write: (msg, cb) => {
+        if (msg.member === 'Hello') {
+          helloMessageSent = true;
+          process.nextTick(() => {
+            // we fake a reply
+            cb(null); // simulate successful write
+          });
+          return;
+        } else {
+          process.nextTick(() => {
+            cb(new Error('no other message expected'));
+          });
+        }
+      }
+    };
+
+    // create the dbus
+    await new Promise(resolve => {
+      // instantiate a bus with the fake stream
+      busInstance = bus(
+        {
+          stream,
+          message: (msg, cb) => stream.write(msg, cb),
+          on: () => {}
+        },
+        (err, _) => {
+          assert.ifError(err);
+          assert(
+            helloMessageSent,
+            "Expected 'Hello' message to be sent on bus instantiation"
+          );
+          resolve();
+        }
+      );
+    });
+  });
 });
