@@ -392,6 +392,7 @@ describe('given a bus', function() {
       }
     };
 
+    // happy path
     await new Promise(resolve => {
       const busInstanceReturnValue = bus.call(
         busInstance,
@@ -404,6 +405,30 @@ describe('given a bus', function() {
           resolve();
         }
       );
+    });
+
+    // modify the message handler to fail on the Hello message, to test the error handling of the bus callback
+    connection.message = (msg, cb) => {
+      process.nextTick(() => {
+        if (msg.member === 'Hello') {
+          cb(
+            new Error(
+              'Failed to send Hello message, msg= ' + JSON.stringify(msg)
+            )
+          );
+        } else {
+          cb(new Error('Unexpected message: ' + JSON.stringify(msg)));
+        }
+      });
+    };
+
+    // error path
+    await new Promise(resolve => {
+      bus.call(busInstance, connection, {}, (err, _) => {
+        assert(err);
+        assert.match(err.message, /Failed to send Hello message/);
+        resolve();
+      });
     });
   });
 
