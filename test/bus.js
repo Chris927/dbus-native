@@ -354,45 +354,58 @@ describe('given a bus', function() {
     });
   });
 
-  it('instantiating the bus sends the "Hello" message', async function() {
-    // fake stream implementation, it fails on write
-    let helloMessageSent = false;
-    let busInstance = null;
-    const stream = {
-      write: (msg, cb) => {
-        if (msg.member === 'Hello') {
-          helloMessageSent = true;
-          process.nextTick(() => {
-            // we fake a reply
-            cb(null); // simulate successful write
-          });
-          return;
+  it('calls invokeDbus, sets name, and calls back', async function() {
+    const name = 'some-service-name';
+
+    let messageHandler;
+
+    const connection = {
+      on: (signal, handler) => {
+        if (signal === 'message') {
+          messageHandler = handler;
         } else {
-          process.nextTick(() => {
-            cb(new Error('no other message expected'));
-          });
+          throw new Error('Unexpected signal: ' + signal);
         }
+      },
+      message: (msg, cb) => {
+        // console.log(`connection.message, msg=${JSON.stringify(msg)}, cb=${cb}`);
+        process.nextTick(() => {
+          if (msg.member === 'Hello') {
+            cb(null); // simulate successful write
+            // we also simulate a reply to the Hello message, which is needed for the bus to set its name and call the callback of bus()
+            messageHandler({ type: 2, replySerial: 1, body: [name] });
+          } else {
+            cb(new Error('Unexpected message: ' + JSON.stringify(msg)));
+          }
+        });
       }
     };
 
-    // create the dbus
+    const busInstance = {
+      // TODO: probably pointless, as dbus() overwrites this
+      invokeDbus: function(msg, cb) {
+        console.log(`invokeDbus called with msg= ${JSON.stringify(msg)}`);
+        assert.deepStrictEqual(msg, {
+          member: 'Hello'
+        });
+        cb(null);
+      }
+    };
+
     await new Promise(resolve => {
-      // instantiate a bus with the fake stream
-      busInstance = bus(
-        {
-          stream,
-          message: (msg, cb) => stream.write(msg, cb),
-          on: () => {}
-        },
+      const busInstanceReturnValue = bus.call(
+        busInstance,
+        connection,
+        {},
         (err, _) => {
           assert.ifError(err);
-          assert(
-            helloMessageSent,
-            "Expected 'Hello' message to be sent on bus instantiation"
-          );
+          // console.log(`Bus callback called, busInstance=${busInstance}, returnValue=${busInstanceReturnValue}`);
+          assert.strictEqual(busInstanceReturnValue.name, name);
           resolve();
         }
       );
     });
   });
+
+  // TODO: calls invokeDbus, and calls back with error
 });
