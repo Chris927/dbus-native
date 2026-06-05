@@ -384,7 +384,7 @@ describe('given a bus', function() {
     const busInstance = {
       // TODO: probably pointless, as dbus() overwrites this
       invokeDbus: function(msg, cb) {
-        console.log(`invokeDbus called with msg= ${JSON.stringify(msg)}`);
+        debug(`invokeDbus called with msg= ${JSON.stringify(msg)}`);
         assert.deepStrictEqual(msg, {
           member: 'Hello'
         });
