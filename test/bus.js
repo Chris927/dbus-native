@@ -381,30 +381,14 @@ describe('given a bus', function() {
       }
     };
 
-    const busInstance = {
-      // TODO: probably pointless, as dbus() overwrites this
-      invokeDbus: function(msg, cb) {
-        debug(`invokeDbus called with msg= ${JSON.stringify(msg)}`);
-        assert.deepStrictEqual(msg, {
-          member: 'Hello'
-        });
-        cb(null);
-      }
-    };
-
     // happy path
     await new Promise(resolve => {
-      const busInstanceReturnValue = bus.call(
-        busInstance,
-        connection,
-        {},
-        (err, _) => {
-          assert.ifError(err);
-          // console.log(`Bus callback called, busInstance=${busInstance}, returnValue=${busInstanceReturnValue}`);
-          assert.strictEqual(busInstanceReturnValue.name, name);
-          resolve();
-        }
-      );
+      const busInstanceReturnValue = bus(connection, {}, (err, _) => {
+        assert.ifError(err);
+        // console.log(`Bus callback called, busInstance=${busInstance}, returnValue=${busInstanceReturnValue}`);
+        assert.strictEqual(busInstanceReturnValue.name, name);
+        resolve();
+      });
     });
 
     // modify the message handler to fail on the Hello message, to test the error handling of the bus callback
@@ -424,7 +408,7 @@ describe('given a bus', function() {
 
     // error path
     await new Promise(resolve => {
-      bus.call(busInstance, connection, {}, (err, _) => {
+      bus(connection, {}, (err, _) => {
         assert(err);
         assert.match(err.message, /Failed to send Hello message/);
         resolve();
