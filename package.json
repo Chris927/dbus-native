@@ -51,6 +51,7 @@
     "husky": "^1.0.0",
     "lint-staged": "^15.2.10",
     "mocha": "*",
+    "nyc": "^18.0.0",
     "optimist": "^0.5.2",
     "prettier": "^1.7.4"
   },
@@ -60,6 +61,7 @@
     "lint:docs": "eslint 'examples/**/*.js'",
     "test": "npm run lint && npm run test:raw",
     "test:raw": "mocha",
+    "test:coverage": "nyc --reporter=text mocha",
     "prettier": "prettier --write index.js '{bin,lib,examples,test}/**/*.js'",
     "prettier:docs": "prettier-markdown README.md",
     "eslint-check": "eslint --print-config .eslintrc | eslint-config-prettier-check",

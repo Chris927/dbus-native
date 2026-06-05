@@ -353,4 +353,68 @@ describe('given a bus', function() {
       );
     });
   });
+
+  it('calls invokeDbus, sets name, and calls back', async function() {
+    const name = 'some-service-name';
+
+    let messageHandler;
+
+    const connection = {
+      on: (signal, handler) => {
+        if (signal === 'message') {
+          messageHandler = handler;
+        } else {
+          throw new Error('Unexpected signal: ' + signal);
+        }
+      },
+      message: (msg, cb) => {
+        // console.log(`connection.message, msg=${JSON.stringify(msg)}, cb=${cb}`);
+        process.nextTick(() => {
+          if (msg.member === 'Hello') {
+            cb(null); // simulate successful write
+            // we also simulate a reply to the Hello message, which is needed for the bus to set its name and call the callback of bus()
+            messageHandler({ type: 2, replySerial: 1, body: [name] });
+          } else {
+            cb(new Error('Unexpected message: ' + JSON.stringify(msg)));
+          }
+        });
+      }
+    };
+
+    // happy path
+    await new Promise(resolve => {
+      const busInstanceReturnValue = bus(connection, {}, (err, _) => {
+        assert.ifError(err);
+        // console.log(`Bus callback called, busInstance=${busInstance}, returnValue=${busInstanceReturnValue}`);
+        assert.strictEqual(busInstanceReturnValue.name, name);
+        resolve();
+      });
+    });
+
+    // modify the message handler to fail on the Hello message, to test the error handling of the bus callback
+    connection.message = (msg, cb) => {
+      process.nextTick(() => {
+        if (msg.member === 'Hello') {
+          cb(
+            new Error(
+              'Failed to send Hello message, msg= ' + JSON.stringify(msg)
+            )
+          );
+        } else {
+          cb(new Error('Unexpected message: ' + JSON.stringify(msg)));
+        }
+      });
+    };
+
+    // error path
+    await new Promise(resolve => {
+      bus(connection, {}, (err, _) => {
+        assert(err);
+        assert.match(err.message, /Failed to send Hello message/);
+        resolve();
+      });
+    });
+  });
+
+  // TODO: calls invokeDbus, and calls back with error
 });
