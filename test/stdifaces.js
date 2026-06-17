@@ -145,9 +145,9 @@ describe('given an exported interface', function() {
         );
         assert.strictEqual(
           errorNameSent,
-          'org.freedesktop.DBus.Error.UnknownMethod'
+          'org.freedesktop.DBus.Error.UnknownObject'
         );
-        assert.strictEqual(errorMessageSent, 'Uh oh oh');
+        assert.strictEqual(errorMessageSent, 'No such object, check path.');
       });
     });
     describe('when the interface does not exist', function() {
@@ -201,9 +201,12 @@ describe('given an exported interface', function() {
         );
         assert.strictEqual(
           errorNameSent,
-          'org.freedesktop.DBus.Error.UnknownMethod'
+          'org.freedesktop.DBus.Error.UnknownInterface'
         );
-        assert.strictEqual(errorMessageSent, 'Uh oh oh');
+        assert.strictEqual(
+          errorMessageSent,
+          'No such interface, check body[0].'
+        );
       });
     });
   });
