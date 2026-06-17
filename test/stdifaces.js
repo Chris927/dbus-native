@@ -45,4 +45,166 @@ describe('given an exported interface', function() {
       assert.match(content, /DOCTYPE/);
     });
   }
+
+  describe('given a call to org.freedesktop.DBus.Properties', function() {
+    describe('happy path', function() {
+      it('returns "1" and sends a message', function() {
+        let messageSent = null;
+        const result = stdifaces(
+          // msg
+          {
+            interface: 'org.freedesktop.DBus.Properties',
+            member: 'Get',
+            path: '/some-path',
+            body: ['my.interface', 'MyProperty']
+          },
+          // bus
+          {
+            exportedObjects: {
+              '/some-path': {
+                'my.interface': [
+                  {
+                    name: 'MyInterface',
+                    properties: {
+                      MyProperty: {
+                        type: 's'
+                        // value: 'Hello'
+                      }
+                    }
+                  },
+                  {
+                    MyProperty: 'hello, property'
+                  }
+                ]
+              }
+            },
+            connection: {
+              message: arg1 => {
+                assert.strictEqual(arg1.type, 2);
+                assert.strictEqual(arg1.signature, 'v');
+                assert.deepStrictEqual(arg1.body, [
+                  [{ type: 's' }, 'hello, property']
+                ]);
+                messageSent = arg1;
+              }
+            }
+          }
+        );
+        assert.strictEqual(result, 1);
+        assert.ok(messageSent, 'Expected a message to be sent');
+      });
+    });
+    describe('when the path does not exist', function() {
+      it('returns "1" and sends an error message', function() {
+        let messageSent = null;
+        let errorNameSent = null;
+        let errorMessageSent = null;
+        const message = {
+          interface: 'org.freedesktop.DBus.Properties',
+          member: 'Get',
+          path: '/some-invalid-path',
+          body: ['my.interface', 'MyProperty']
+        };
+        const result = stdifaces(
+          // msg
+          message,
+          // bus
+          {
+            exportedObjects: {
+              '/some-path': {
+                'my.interface': [
+                  {
+                    name: 'MyInterface',
+                    properties: {
+                      MyProperty: {
+                        type: 's'
+                        // value: 'Hello'
+                      }
+                    }
+                  },
+                  {
+                    MyProperty: 'hello, property'
+                  }
+                ]
+              }
+            },
+            connection: null,
+            sendError: (msg, errorName, errorMessage) => {
+              messageSent = msg;
+              errorNameSent = errorName;
+              errorMessageSent = errorMessage;
+            }
+          }
+        );
+        assert.strictEqual(result, 1);
+        assert.ok(messageSent, 'Expected an error message to be sent');
+        assert.strictEqual(
+          message,
+          messageSent,
+          'Expected the error message to be sent in response to the original message'
+        );
+        assert.strictEqual(
+          errorNameSent,
+          'org.freedesktop.DBus.Error.UnknownMethod'
+        );
+        assert.strictEqual(errorMessageSent, 'Uh oh oh');
+      });
+    });
+    describe('when the interface does not exist', function() {
+      it('returns "1" and sends an error message', function() {
+        let messageSent = null;
+        let errorNameSent = null;
+        let errorMessageSent = null;
+        const message = {
+          interface: 'org.freedesktop.DBus.Properties',
+          member: 'Get',
+          path: '/some-path',
+          body: ['my.invalid-interface', 'MyProperty']
+        };
+        const result = stdifaces(
+          // msg
+          message,
+          // bus
+          {
+            exportedObjects: {
+              '/some-path': {
+                'my.interface': [
+                  {
+                    name: 'MyInterface',
+                    properties: {
+                      MyProperty: {
+                        type: 's'
+                        // value: 'Hello'
+                      }
+                    }
+                  },
+                  {
+                    MyProperty: 'hello, property'
+                  }
+                ]
+              }
+            },
+            connection: null,
+            sendError: (msg, errorName, errorMessage) => {
+              messageSent = msg;
+              errorNameSent = errorName;
+              errorMessageSent = errorMessage;
+            }
+          }
+        );
+        assert.strictEqual(result, 1);
+        assert.ok(messageSent, 'Expected an error message to be sent');
+        assert.strictEqual(
+          message,
+          messageSent,
+          'Expected the error message to be sent in response to the original message'
+        );
+        assert.strictEqual(
+          errorNameSent,
+          'org.freedesktop.DBus.Error.UnknownMethod'
+        );
+        assert.strictEqual(errorMessageSent, 'Uh oh oh');
+      });
+    });
+  });
 });
