@@ -41,7 +41,14 @@ function createStream(opts) {
         case 'unix':
           if (params.socket) return net.createConnection(params.socket);
           if (params.abstract) {
-            var abs = require('abstract-socket');
+            var abs;
+            try {
+              abs = require('abstract-socket');
+            } catch (e) {
+              throw new Error(
+                "abstract-socket is required for 'abstract' unix socket addresses but is not installed - run 'npm install abstract-socket' to add it"
+              );
+            }
             return abs.connect('\u0000' + params.abstract);
           }
           if (params.path) return net.createConnection(params.path);
