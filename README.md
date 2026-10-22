@@ -63,7 +63,9 @@ options:
 - port - TCP port
 - host - TCP host
 - busAddress - encoded bus address. Default is `DBUS_SESSION_BUS_ADDRESS` environment variable. See http://dbus.freedesktop.org/doc/dbus-specification.html#addresses
+- stream - an already connected duplex stream to use instead of opening a socket, e.g. an SSH channel to a remote bus socket
 - authMethods - array of authentication methods, which are attempted in the order provided (default:['EXTERNAL', 'DBUS_COOKIE_SHA1', 'ANONYMOUS'])
+- externalAuthWithoutUid - boolean (default:false): if true, EXTERNAL authentication doesn't send this process's uid, and the bus authenticates the client by the socket's peer credentials instead. Use it when the bus sees a different uid than this process, e.g. for a socket forwarded over SSH. Combine it with `authMethods: ['EXTERNAL']`: the default list falls back to DBUS_COOKIE_SHA1, which uses this process's uid and local keyring and so can't work in that case either
 - ayBuffer - boolean (default:true): if true 'ay' dbus fields are returned as buffers
 - ReturnLongjs - boolean (default:false): if true 64 bit dbus fields (x/t) are read out as Long.js objects, otherwise they are converted to numbers (which should be good up to 53 bits)
 - ( TODO: add/document option to use adress from X11 session )
