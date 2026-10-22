@@ -81,7 +81,8 @@ function createConnection(opts) {
   var self = new EventEmitter();
   if (!opts) opts = {};
   var stream = (self.stream = createStream(opts));
-  stream.setNoDelay();
+  // opts.stream can be any duplex stream, e.g. an SSH channel, not only a socket
+  if (typeof stream.setNoDelay === 'function') stream.setNoDelay();
 
   stream.on('error', function(err) {
     // forward network and stream errors
